@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../enums/device_type.dart';
 import '../models/version_info.dart';
 import '../services/android_store_service.dart';
-import '../services/huawei_store_service.dart';
+import '../services/huawei_apk_pure_service.dart';
 import '../services/ios_store_service.dart';
 import 'device_detector_service.dart';
 
@@ -42,8 +42,8 @@ class AppVersionChecker {
   /// Country code for Android Play Store (e.g., 'en_US', 'id_ID')
   final String? androidPlayStoreCountry;
 
-  /// Country code for Huawei AppGallery (e.g., 'en_US', 'id_ID')
-  final String? huaweiAppGalleryCountry;
+  /// Country code for ApkPure (e.g., 'en_US', 'id_ID')
+  final String? huaweiApkPureCountry;
 
   /// Force a specific version for testing purposes
   final String? forceAppVersion;
@@ -62,6 +62,7 @@ class AppVersionChecker {
 
   /// Cached device type
   DeviceType? _cachedDeviceType;
+  
 
   AppVersionChecker({
     this.androidId,
@@ -69,7 +70,7 @@ class AppVersionChecker {
     this.huaweiId,
     this.iOSAppStoreCountry,
     this.androidPlayStoreCountry,
-    this.huaweiAppGalleryCountry,
+    this.huaweiApkPureCountry,
     this.forceAppVersion,
     this.androidHtmlReleaseNotes = false,
     this.huaweiHtmlReleaseNotes = false,
@@ -118,12 +119,12 @@ class AppVersionChecker {
           break;
 
         case DeviceType.huawei:
-          debugPrint('Checking for updates on Huawei AppGallery');
-          versionInfo = await HuaweiStoreService(
-            huaweiId: huaweiId,
-            huaweiAppGalleryCountry: huaweiAppGalleryCountry,
+          debugPrint('Checking for updates on Huawei APk Pure');
+          versionInfo = await ApkPureService(
+            appId: huaweiId,
             forceAppVersion: forceAppVersion,
-            huaweiHtmlReleaseNotes: huaweiHtmlReleaseNotes,
+            htmlReleaseNotes: huaweiHtmlReleaseNotes,
+            countryCode: huaweiApkPureCountry,
           ).getStoreVersion(packageInfo);
           break;
 
@@ -164,6 +165,58 @@ class AppVersionChecker {
       await launchUrl(uri, mode: launchMode);
     } else {
       throw Exception('Could not launch store URL: ${info.appStoreLink}');
+    }
+  }
+
+  /// Downloads APK directly (for Huawei/APK Pure)
+  ///
+  /// This method opens the APK download link in a browser,
+  /// which triggers the automatic download on the device.
+  /// 
+  /// Primarily used for Huawei devices via APK Pure.
+  /// If [versionInfo] is not provided, it will try to use the cached version info.
+  ///
+  /// Returns `true` if download was successfully initiated, `false` otherwise.
+  Future<bool> downloadApk({
+    VersionInfo? versionInfo,
+    LaunchMode launchMode = LaunchMode.externalApplication,
+  }) async {
+    final info = versionInfo ?? _cachedVersionInfo;
+
+    if (info == null) {
+      debugPrint('No version info available. Call checkForUpdate() first.');
+      return false;
+    }
+
+    // Check if APK download URL is available
+    if (info.apkDownloadUrl == null || info.apkDownloadUrl!.isEmpty) {
+      debugPrint('No APK download URL available');
+      return false;
+    }
+
+    try {
+      final urlString = info.apkDownloadUrl!;
+      debugPrint('Attempting to download APK from: $urlString');
+      
+      // Validate URL format
+      if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+        debugPrint('Invalid APK download URL format (must start with http:// or https://)');
+        return false;
+      }
+
+      final uri = Uri.parse(urlString);
+
+      if (await canLaunchUrl(uri)) {
+        debugPrint('Opening APK download URL: $urlString');
+        await launchUrl(uri, mode: launchMode);
+        return true;
+      } else {
+        debugPrint('Could not launch APK download URL (canLaunchUrl returned false): $urlString');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error downloading APK: $e');
+      return false;
     }
   }
 

@@ -398,12 +398,29 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
     // Priority 1: Try contentRating (usually has format like "Rated for 3+", "Everyone", etc)
     final contentRating = widget.versionInfo.contentRating ?? '';
     final ageRating = widget.versionInfo.ageRating ?? '';
+    // final rating = widget.versionInfo.rating;
+    // final releaseNote = widget.versionInfo.releaseNotes;
+    // final appStoreLink = widget.versionInfo.appStoreLink;
+    // final storeVersion = widget.versionInfo.storeVersion;
+    // final apkDownloadUrl = widget.versionInfo.apkDownloadUrl;
+    // final appIcon = widget.versionInfo.appIconUrl;
+    // final appName = widget.versionInfo.appName;
+    // final developerName = widget.versionInfo.developerName;
+
 
     // Debug logging
-    debugPrint('=== Age Rating Debug ===');
-    debugPrint('contentRating: $contentRating');
-    debugPrint('ageRating: $ageRating');
-    debugPrint('deviceType: ${widget.versionInfo.deviceType?.name}');
+    // debugPrint('=== Age Rating Debug ===');
+    // debugPrint('contentRating: $contentRating');
+    // debugPrint('ageRating: $ageRating');
+    // debugPrint('deviceType: ${widget.versionInfo.deviceType?.name}');
+    // debugPrint('rating: $rating');
+    // debugPrint('releaseNote: $releaseNote');
+    // debugPrint('appStoreLink: $appStoreLink');
+    // debugPrint('storeVersion: $storeVersion');
+    // debugPrint('apkDownloadUrl: $apkDownloadUrl');
+    // debugPrint('appIcon: $appIcon');
+    // debugPrint('appName: $appName');
+    // debugPrint('developerName: $developerName');
 
     // Try to extract numeric age from either field
     int? ratingNumber;
@@ -461,7 +478,7 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
   //     return 12;
   //   }
   //   if (lowerRating.contains('teen') || lowerRating == 't') return 13;
-  //   if (lowerRating.contains('mature') || lowerRating == 'm') return 17;
+  //   if (lowerRating.contains('mature') || lowerRa>ting == 'm') return 17;
   //   if (lowerRating.contains('adults only') || lowerRating == 'ao') return 18;
 
   //   // PEGI ratings
@@ -593,7 +610,70 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
               textButton: label,
               onPressed: () async {
                 final checker = AppVersionChecker();
-                await checker.launchStore(versionInfo: widget.versionInfo);
+                
+                // For Huawei devices, use direct APK download
+                if (widget.versionInfo.deviceType == DeviceType.huawei) {
+                  try {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Opening download...'),
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    
+                    final success = await checker.downloadApk(
+                      versionInfo: widget.versionInfo,
+                    );
+                    
+                    if (mounted) {
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Download started!'),
+                            duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        Navigator.of(context).pop();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Failed to open download. Please try again.'),
+                            action: SnackBarAction(
+                              label: 'Retry',
+                              onPressed: () async {
+                                final retrySuccess = await checker.downloadApk(
+                                  versionInfo: widget.versionInfo,
+                                );
+                                if (retrySuccess && mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    debugPrint('Error in download: $e');
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
+                } else {
+                  // For other platforms, launch the store
+                  await checker.launchStore(versionInfo: widget.versionInfo);
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+                }
               },
             ),
           ),
@@ -610,7 +690,70 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
       textButton: label,
       onPressed: () async {
         final checker = AppVersionChecker();
-        await checker.launchStore(versionInfo: widget.versionInfo);
+        
+        // For Huawei devices, use direct APK download
+        if (widget.versionInfo.deviceType == DeviceType.huawei) {
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Opening download...'),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            
+            final success = await checker.downloadApk(
+              versionInfo: widget.versionInfo,
+            );
+            
+            if (mounted) {
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Download started!'),
+                    duration: Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                Navigator.of(context).pop();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Failed to open download. Please try again.'),
+                    action: SnackBarAction(
+                      label: 'Retry',
+                      onPressed: () async {
+                        final retrySuccess = await checker.downloadApk(
+                          versionInfo: widget.versionInfo,
+                        );
+                        if (retrySuccess && mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            debugPrint('Error in download: $e');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $e'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+        } else {
+          // For other platforms, launch the store
+          await checker.launchStore(versionInfo: widget.versionInfo);
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        }
       },
     );
   }

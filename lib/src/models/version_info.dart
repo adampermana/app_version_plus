@@ -49,6 +49,9 @@ class VersionInfo {
   /// The device type/platform this version info belongs to
   final DeviceType? deviceType;
 
+  /// Direct APK download URL (for Huawei/APK Pure downloads)
+  final String? apkDownloadUrl;
+
   VersionInfo._({
     required this.localVersion,
     required this.storeVersion,
@@ -65,6 +68,7 @@ class VersionInfo {
     this.ageRating,
     this.contentRating,
     this.deviceType,
+    this.apkDownloadUrl,
   });
 
   /// Creates a [VersionInfo] instance from store data
@@ -84,6 +88,7 @@ class VersionInfo {
     String? ageRating,
     String? contentRating,
     DeviceType? deviceType,
+    String? apkDownloadUrl,
   }) {
     return VersionInfo._(
       localVersion: localVersion,
@@ -101,6 +106,7 @@ class VersionInfo {
       ageRating: ageRating,
       contentRating: contentRating,
       deviceType: deviceType,
+      apkDownloadUrl: apkDownloadUrl,
     );
   }
 
@@ -164,6 +170,7 @@ class VersionInfo {
     String? ageRating,
     String? contentRating,
     DeviceType? deviceType,
+    String? apkDownloadUrl,
   }) {
     return VersionInfo._(
       localVersion: localVersion ?? this.localVersion,
@@ -181,6 +188,7 @@ class VersionInfo {
       ageRating: ageRating ?? this.ageRating,
       contentRating: contentRating ?? this.contentRating,
       deviceType: deviceType ?? this.deviceType,
+      apkDownloadUrl: apkDownloadUrl ?? this.apkDownloadUrl,
     );
   }
 
@@ -202,6 +210,7 @@ class VersionInfo {
       'ageRating': ageRating,
       'contentRating': contentRating,
       'deviceType': deviceType?.name,
+      'apkDownloadUrl': apkDownloadUrl,
       'canUpdate': canUpdate,
       'updateAvailability': updateAvailability.name,
     };
@@ -232,6 +241,7 @@ class VersionInfo {
               orElse: () => DeviceType.unknown,
             )
           : null,
+      apkDownloadUrl: json['apkDownloadUrl'] as String?,
     );
   }
 

@@ -41,12 +41,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> _detectDevice() async {
     final checker = AppVersionChecker(
       // Override only if different from pubspec.yaml
-      androidId: 'com.g4sindonesia.gracia',
+      androidId: 'flutterapp.spinevishal.com.comman_project',
       androidHtmlReleaseNotes: true,
       androidPlayStoreCountry: 'en_US',
       iOSAppStoreCountry: 'en_US',
-      iOSId: 'com.g4sindonesia.gracia',
-      huaweiId: 'pe.com.interbank.mobilebanking',
+      iOSId: 'flutterapp.spinevishal.com.comman_project',
+      huaweiId: 'com.github.TwrpBuilderF',
     );
 
     // Detect device type
@@ -78,11 +78,12 @@ class _HomePageState extends State<HomePage> {
     // Step 1: Create checker with your app configuration
     final checker = AppVersionChecker(
 // Override only if different!
-      androidId: 'com.g4sindonesia.gracia',
+      androidId: 'flutterapp.spinevishal.com.comman_project',
       androidHtmlReleaseNotes: true,
-      androidPlayStoreCountry: 'id',
-      iOSId: 'com.g4sindonesia.gracia',
-      huaweiId: 'pe.com.interbank.mobilebanking',
+      androidPlayStoreCountry: 'en_US',
+      iOSAppStoreCountry: 'en_US',
+      iOSId: 'flutterapp.spinevishal.com.comman_project',
+      huaweiId: 'com.github.TwrpBuilderF',
     );
 
     // Step 2: Check for update
