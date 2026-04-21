@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -334,49 +333,6 @@ class ApkPureService {
     return null;
   }
 
-  /// Cleans image URL from HTML entities and rejects invalid sources.
-  String? _cleanImageUrl(String rawUrl) {
-    final cleaned =
-        rawUrl.replaceAll('&amp;', '&').replaceAll('\\u0026', '&').trim();
-
-    if (cleaned.isEmpty) return null;
-    if (cleaned.startsWith('data:')) return null;
-    if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
-      return null;
-    }
-
-    return cleaned;
-  }
-
-  /// Higher score means higher chance this URL is the app icon (not screenshot).
-  int _iconScore(String url, String expectedAppId) {
-    final lower = url.toLowerCase();
-    var score = 0;
-    final appIdLower = expectedAppId.toLowerCase();
-
-    final encodedAppId = base64Encode(utf8.encode(expectedAppId));
-    final encodedAppIdLower = encodedAppId.toLowerCase();
-
-    if (lower.contains('_icon_')) score += 50;
-    if (lower.contains('/icon.')) score += 40;
-    if (lower.contains('icon.webp') ||
-        lower.contains('icon.png') ||
-        lower.contains('icon.jpg')) {
-      score += 35;
-    }
-    if (lower.contains('image.winudf.com')) score += 10;
-
-    // Strong preference for URLs that belong to current package/app.
-    if (lower.contains(appIdLower)) score += 120;
-    if (lower.contains(encodedAppIdLower)) score += 120;
-
-    if (lower.contains('screen-') || lower.contains('_screen_')) {
-      score -= 100;
-    }
-
-    return score;
-  }
-
   /// Extracts app name from APK Pure HTML
   String? _extractAppName(String html) {
     try {
@@ -637,7 +593,7 @@ class ApkPureService {
 
       // Pattern 9: APK in data attributes
       final regex9 = RegExp(
-        'apkUrl.*?:\\s*["\']([^"\']+\\.apk[^\'\"]*)["\']}',
+        'apkUrl.*?:\\s*["\']([^"\']+\\.apk[^\'"]*)["\']}',
         caseSensitive: false,
       );
       final match9 = regex9.firstMatch(html);
