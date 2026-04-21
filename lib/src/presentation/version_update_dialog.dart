@@ -407,7 +407,6 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
     // final appName = widget.versionInfo.appName;
     // final developerName = widget.versionInfo.developerName;
 
-
     // Debug logging
     // debugPrint('=== Age Rating Debug ===');
     // debugPrint('contentRating: $contentRating');
@@ -610,7 +609,7 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
               textButton: label,
               onPressed: () async {
                 final checker = AppVersionChecker();
-                
+
                 // For Huawei devices, use direct APK download
                 if (widget.versionInfo.deviceType == DeviceType.huawei) {
                   try {
@@ -621,11 +620,11 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
-                    
+
                     final success = await checker.downloadApk(
                       versionInfo: widget.versionInfo,
                     );
-                    
+
                     if (mounted) {
                       if (success) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -639,7 +638,8 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Failed to open download. Please try again.'),
+                            content: const Text(
+                                'Failed to open download. Please try again.'),
                             action: SnackBarAction(
                               label: 'Retry',
                               onPressed: () async {
@@ -690,7 +690,7 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
       textButton: label,
       onPressed: () async {
         final checker = AppVersionChecker();
-        
+
         // For Huawei devices, use direct APK download
         if (widget.versionInfo.deviceType == DeviceType.huawei) {
           try {
@@ -701,11 +701,11 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
                 behavior: SnackBarBehavior.floating,
               ),
             );
-            
+
             final success = await checker.downloadApk(
               versionInfo: widget.versionInfo,
             );
-            
+
             if (mounted) {
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -719,7 +719,8 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Failed to open download. Please try again.'),
+                    content: const Text(
+                        'Failed to open download. Please try again.'),
                     action: SnackBarAction(
                       label: 'Retry',
                       onPressed: () async {

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../constants/store_urls.dart';
 import '../enums/device_type.dart';
 import '../models/version_info.dart';
 import '../utils/date_utils.dart';
@@ -26,7 +27,7 @@ class ApkPureService {
   });
 
   /// Gets app version and metadata from APK Pure
-  /// 
+  ///
   /// Extracts the following data:
   /// - Version number (e.g., "1.0.5")
   /// - Release notes/What's New
@@ -40,7 +41,7 @@ class ApkPureService {
   /// - Age rating (e.g., "4+", "12+", "17+")
   /// - Content rating description
   /// - Last update date
-  /// 
+  ///
   /// The [packageInfo] is used to get the package name if [appId] is not provided.
   /// Returns null if the page cannot be fetched or parsed.
   Future<VersionInfo?> getStoreVersion(
@@ -48,7 +49,7 @@ class ApkPureService {
     String? packageName,
   }) async {
     final id = appId ?? packageName ?? packageInfo.packageName;
-    
+
     // Build APK Pure URL
     final uri = Uri.https('apkpure.com', '/flutter-app/$id');
 
@@ -57,8 +58,7 @@ class ApkPureService {
       response = await http.get(
         uri,
         headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
         },
       );
     } catch (e) {
@@ -80,8 +80,29 @@ class ApkPureService {
       }
 
       // Extract all other information
-      final String? releaseNotes = _extractReleaseNotes(response.body);
-      final String? appIconUrl = _extractAppIconUrl(response.body, id);
+      String? releaseNotes = await _fetchReleaseNotesFromPlayStore(
+        id,
+        countryCode ?? 'en_US',
+      );
+      // Fetch icon from Play Store
+      final playStoreUri =
+          Uri.https(StoreUrls.playStore, "/store/apps/details", {
+        "id": id.toString(),
+        "hl": countryCode ?? "en_US",
+        "timestamp": DateTime.now().millisecondsSinceEpoch.toString(),
+      });
+      String? appIconUrl;
+      try {
+        final playStoreResponse = await http.get(playStoreUri);
+        if (playStoreResponse.statusCode == 200) {
+          appIconUrl = _extractAppIconUrl(playStoreResponse.body);
+        }
+      } catch (e) {
+        debugPrint('Error fetching Play Store icon for Huawei: $e');
+      }
+      // Fallback to APKPure icon if Play Store fetch failed
+      appIconUrl ??= _extractAppIconUrl(response.body);
+
       final String? appName = _extractAppName(response.body);
       final String? developerName = _extractDeveloperName(response.body);
       var downloadUrl = _extractDownloadUrl(response.body);
@@ -89,8 +110,11 @@ class ApkPureService {
       final DateTime? lastUpdateDate = _extractLastUpdateDate(response.body);
 
       // Fallback: If download URL not found or is invalid, generate a CDN template URL
-      if (downloadUrl == null || downloadUrl.isEmpty || !_isValidDownloadUrl(downloadUrl)) {
-        debugPrint('Download URL not extracted or invalid from HTML, using fallback CDN template');
+      if (downloadUrl == null ||
+          downloadUrl.isEmpty ||
+          !_isValidDownloadUrl(downloadUrl)) {
+        debugPrint(
+            'Download URL not extracted or invalid from HTML, using fallback CDN template');
         // Use the APK Pure CDN template format with the package ID
         downloadUrl = 'https://d.apkpure.com/b/APK/$id?version=latest';
         debugPrint('Fallback download URL generated: $downloadUrl');
@@ -110,8 +134,10 @@ class ApkPureService {
       debugPrint('Age Rating: ${metadata['ageRating']}');
       debugPrint('Content Rating: ${metadata['contentRating']}');
       debugPrint('Last Update: $lastUpdateDate');
-      debugPrint('Release Notes: ${releaseNotes?.substring(0, math.min(releaseNotes.length, 100)) ?? 'null'}');
-      debugPrint('Download URL is using template: ${downloadUrl.contains('?version=latest')}');
+      debugPrint(
+          'Release Notes: ${releaseNotes?.substring(0, math.min(releaseNotes.length, 100)) ?? 'null'}');
+      debugPrint(
+          'Download URL is using template: ${downloadUrl.contains('?version=latest')}');
       debugPrint('================================');
 
       return VersionInfo.fromStore(
@@ -121,12 +147,15 @@ class ApkPureService {
         ),
         originalStoreVersion: forceAppVersion ?? storeVersion,
         appStoreLink: uri.toString(),
-        releaseNotes: HtmlUtils.formatReleaseNotes(releaseNotes, htmlReleaseNotes),
+        releaseNotes:
+            HtmlUtils.formatReleaseNotes(releaseNotes, htmlReleaseNotes),
         lastUpdateDate: lastUpdateDate,
         appName: appName,
         developerName: developerName,
         appIconUrl: appIconUrl,
-        rating: metadata['rating'] != null ? double.tryParse(metadata['rating']!) : null,
+        rating: metadata['rating'] != null
+            ? double.tryParse(metadata['rating']!)
+            : null,
         ratingCount: metadata['ratingCount'] != null
             ? int.tryParse(metadata['ratingCount']!)
             : null,
@@ -184,223 +213,131 @@ class ApkPureService {
     }
   }
 
-  /// Extracts release notes from APK Pure HTML
-  String? _extractReleaseNotes(String html) {
+  Future<String?> _fetchReleaseNotesFromPlayStore(
+    String packageId,
+    String countryCode,
+  ) async {
+    final uri = Uri.https('play.google.com', '/store/apps/details', {
+      'id': packageId,
+      'hl': countryCode,
+      'gl': 'US',
+    });
+
     try {
-      // Pattern 1: Show-more-content pattern (modern APK Pure structure - PRIORITY)
-      final regex1 = RegExp(
-        r'<div[^>]*class="[^"]*show-more-content[^"]*"[^>]*>\s*<p[^>]*class="[^"]*text[^"]*"[^>]*>([^<]+)<\/p>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match1 = regex1.firstMatch(html);
-      if (match1 != null) {
-        final text = match1.group(1)?.trim();
-        if (text != null && text.isNotEmpty && text.length > 3 && !text.toLowerCase().contains('log in')) {
-          return text;
-        }
-      }
+      final response = await http.get(uri, headers: {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      });
 
-      // Pattern 2: What's New section with content extraction
-      final regex2 = RegExp(
-        r'<h2[^>]*class="[^"]*name[^"]*"[^>]*>What.s\s+New[^<]*<\/h2>.*?<div[^>]*class="[^"]*whats-new-container[^"]*"[^>]*>.*?<p[^>]*class="[^"]*text[^"]*"[^>]*>([^<]+)<\/p>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match2 = regex2.firstMatch(html);
-      if (match2 != null) {
-        final text = match2.group(1)?.trim();
-        if (text != null && text.isNotEmpty && text.length > 3 && !text.toLowerCase().contains('log in')) {
-          return text;
-        }
-      }
+      if (response.statusCode != 200) return null;
 
-      // Pattern 3: What's New section (simpler pattern)
-      final regex3 = RegExp(
-        r"what.s\s+new[:\s]*<[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/",
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match3 = regex3.firstMatch(html);
-      if (match3 != null) {
-        final text = match3.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10 && !text.toLowerCase().contains('log in')) {
-          return text;
-        }
-      }
-
-      // Pattern 4: Version History header with content
-      final regex4 = RegExp(
-        r'(?:Version\s+History|Release\s+History|Update\s+Log)[:\s]*<[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/[^>]*>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match4 = regex4.firstMatch(html);
-      if (match4 != null) {
-        final text = match4.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10 && !text.toLowerCase().contains('log in')) {
-          return text;
-        }
-      }
-
-      // Pattern 5: Release notes in id-based div
-      final regex5 = RegExp(
-        r'<div[^>]*id="[^"]*(?:release|notes|changelog|whatsnew)[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/div>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match5 = regex5.firstMatch(html);
-      if (match5 != null) {
-        final text = match5.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10 && !text.toLowerCase().contains('log in')) {
-          return text;
-        }
-      }
-
-      // Pattern 6: Specific release notes containers
-      final regex6 = RegExp(
-        r'<div[^>]*class="[^"]*(?:release|notes|changelog)[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/div>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match6 = regex6.firstMatch(html);
-      if (match6 != null) {
-        final text = match6.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10 && !text.toLowerCase().contains('log in')) {
-          return text;
-        }
-      }
-
-      // Pattern 7: App description section
-      final regex7 = RegExp(
-        r'<p[^>]*class="[^"]*description[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/p>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match7 = regex7.firstMatch(html);
-      if (match7 != null) {
-        final text = match7.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10) {
-          return text;
-        }
-      }
-
-      // Pattern 8: Update/news info in specific sections
-      final regex8 = RegExp(
-        r'<(?:span|strong|em)[^>]*class="[^"]*update[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/(?:span|strong|em)>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match8 = regex8.firstMatch(html);
-      if (match8 != null) {
-        final text = match8.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10) {
-          return text;
-        }
-      }
-
-      // Pattern 9: Generic description div (fallback)
-      final regex9 = RegExp(
-        r'<div[^>]*class="[^"]*desc[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/div>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match9 = regex9.firstMatch(html);
-      if (match9 != null) {
-        final text = match9.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10) {
-          return text;
-        }
-      }
-
-      // Pattern 8: Content section (last resort)
-      final regex10 = RegExp(
-        r'<div[^>]*class="[^"]*content[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/div>',
-        caseSensitive: false,
-        dotAll: true,
-      );
-      final match10 = regex10.firstMatch(html);
-      if (match10 != null) {
-        final text = match10.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        if (text != null && text.isNotEmpty && text.length > 10) {
-          return text;
-        }
-      }
-
-      return null;
+      return _extractReleaseNotesFromPlayStoreHtml(response.body);
     } catch (e) {
-      debugPrint('Error extracting release notes: $e');
+      debugPrint('Error fetching Play Store release notes: $e');
       return null;
     }
   }
 
+  String? _extractReleaseNotesFromPlayStoreHtml(String html) {
+    // Pattern 1: What's new section in Play Store HTML (JSON encoded)
+    final regex1 = RegExp(
+      r'\[\[\["(.*?)"\]\].*?recentChangesHtml',
+      caseSensitive: false,
+      dotAll: true,
+    );
+    final match1 = regex1.firstMatch(html);
+    if (match1 != null) {
+      return match1
+          .group(1)
+          ?.replaceAll(r'\n', '\n')
+          .replaceAll(r'\"', '"')
+          .trim();
+    }
+
+    // Pattern 2: Itemprop="description" after "What's new" heading
+    final regex2 = RegExp(
+      r"What.s [Nn]ew.*?<div[^>]*>(.*?)</div>",
+      caseSensitive: false,
+      dotAll: true,
+    );
+    final match2 = regex2.firstMatch(html);
+    if (match2 != null) {
+      return match2
+          .group(1)
+          ?.replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'<[^>]*>'), '')
+          .trim();
+    }
+
+    return null;
+  }
+
   /// Extracts app icon URL from APK Pure HTML
-  String? _extractAppIconUrl(String html, String expectedAppId) {
+  String? _extractAppIconUrl(String body) {
     try {
-      final List<String> candidates = [];
+      // Method 1: Structured data
+      final structuredIconRegex =
+          RegExp(r'"image"\s*:\s*"([^"]*)"', caseSensitive: false);
+      final structuredMatch = structuredIconRegex.firstMatch(body);
+      if (structuredMatch != null) return structuredMatch.group(1);
 
-      void addCandidate(String? rawUrl) {
-        if (rawUrl == null || rawUrl.isEmpty) return;
-        final url = _cleanImageUrl(rawUrl);
-        if (url == null) return;
-        candidates.add(url);
+      // Method 2: Meta tags
+      final metaIconRegex = RegExp(
+          r'<meta\s+property="og:image"\s+content="([^"]+)"',
+          caseSensitive: false);
+      final metaMatch = metaIconRegex.firstMatch(body);
+      if (metaMatch != null) return metaMatch.group(1);
+
+      // Method 3: Play Store patterns
+      final playStoreIconPatterns = [
+        RegExp(r'src="([^"]*play-lh\.googleusercontent\.com[^"]*=s512[^"]*)"'),
+        RegExp(r'src="([^"]*play-lh\.googleusercontent\.com[^"]*=s256[^"]*)"'),
+        RegExp(r'src="([^"]*play-lh\.googleusercontent\.com[^"]*=s128[^"]*)"'),
+        RegExp(r'src="([^"]*play-lh\.googleusercontent\.com[^"]*)"'),
+        RegExp(r'<img[^>]*class="[^"]*icon[^"]*"[^>]*src="([^"]*)"'),
+        RegExp(r'<img[^>]*src="([^"]*)"[^>]*class="[^"]*icon[^"]*"'),
+      ];
+
+      for (final pattern in playStoreIconPatterns) {
+        final match = pattern.firstMatch(body);
+        if (match != null) {
+          var url = match.group(1);
+          if (url != null && url.contains('play-lh.googleusercontent.com')) {
+            url = url.replaceAll(RegExp(r'=s\d+'), '=s512');
+            if (!url.contains('=s')) url += '=s512';
+          }
+          return url;
+        }
       }
 
-      // Pattern 1: Icon in img tags with class/id priority
-      final regex1 = RegExp(
-        r'<img[^>]*(?:class="[^"]*icon[^"]*"|id="[^"]*icon[^"]*")[^>]*src="([^"]+)"',
-        caseSensitive: false,
-      );
-      for (final match in regex1.allMatches(html)) {
-        addCandidate(match.group(1));
+      // Method 4: JSON-LD
+      final jsonLdPattern = RegExp(
+          r'"@type"\s*:\s*"MobileApplication"[^}]*"image"\s*:\s*"([^"]*)"',
+          caseSensitive: false,
+          dotAll: true);
+      final jsonLdMatch = jsonLdPattern.firstMatch(body);
+      if (jsonLdMatch != null) {
+        var url = jsonLdMatch.group(1);
+        if (url != null && !url.startsWith('http')) {
+          if (url.startsWith('//')) {
+            url = 'https:$url';
+          } else if (url.startsWith('/')) {
+            url = 'https://play.google.com$url';
+          }
+        }
+        return url;
       }
-
-      // Pattern 2: Common icon filename patterns from APK Pure CDN
-      final regex2 = RegExp(
-        r'https?://[^"\s>]*?(?:_icon_|/icon\.|icon\.webp|icon\.png|icon\.jpg)[^"\s>]*',
-        caseSensitive: false,
-      );
-      for (final match in regex2.allMatches(html)) {
-        addCandidate(match.group(0));
-      }
-
-      // Pattern 3: Meta og:image
-      final regex3 = RegExp(
-        r'<meta\s+property="og:image"\s+content="([^"]+)"',
-        caseSensitive: false,
-      );
-      final match3 = regex3.firstMatch(html);
-      addCandidate(match3?.group(1));
-
-      // Pattern 4: Any image URL as fallback (filtered later by score)
-      final regex4 = RegExp(
-        r'https?://[^"\s>]*image\.winudf\.com[^"\s>]*',
-        caseSensitive: false,
-      );
-      for (final match in regex4.allMatches(html)) {
-        addCandidate(match.group(0));
-      }
-
-      if (candidates.isEmpty) return null;
-
-      candidates.sort(
-        (a, b) => _iconScore(b, expectedAppId).compareTo(_iconScore(a, expectedAppId)),
-      );
-      final best = candidates.first;
-      debugPrint('Selected app icon candidate: $best');
-      return best;
     } catch (e) {
-      debugPrint('Error extracting app icon: $e');
       return null;
     }
+    return null;
   }
 
   /// Cleans image URL from HTML entities and rejects invalid sources.
   String? _cleanImageUrl(String rawUrl) {
-    final cleaned = rawUrl
-        .replaceAll('&amp;', '&')
-        .replaceAll('\\u0026', '&')
-        .trim();
+    final cleaned =
+        rawUrl.replaceAll('&amp;', '&').replaceAll('\\u0026', '&').trim();
 
     if (cleaned.isEmpty) return null;
     if (cleaned.startsWith('data:')) return null;
@@ -451,7 +388,8 @@ class ApkPureService {
         // Common patterns to remove: " - Download APK", " APK for Android Download"
         title = title
             .replaceAll(RegExp(r'\s*-\s*[Dd]ownload.*$'), '')
-            .replaceAll(RegExp(r'\s+APK(?:\s+for\s+Android)?\s+[Dd]ownload\s*$'), '')
+            .replaceAll(
+                RegExp(r'\s+APK(?:\s+for\s+Android)?\s+[Dd]ownload\s*$'), '')
             .trim();
         if (title.isNotEmpty) return title;
       }
@@ -576,8 +514,8 @@ class ApkPureService {
       final match1 = regex1.firstMatch(html);
       if (match1 != null) {
         final url = match1.group(0);
-        if (url != null && 
-            !url.contains('login') && 
+        if (url != null &&
+            !url.contains('login') &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(url)) {
           return url;
@@ -592,8 +530,8 @@ class ApkPureService {
       final match2 = regex2.firstMatch(html);
       if (match2 != null) {
         final url = match2.group(0);
-        if (url != null && 
-            !url.contains('login') && 
+        if (url != null &&
+            !url.contains('login') &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(url)) {
           return url;
@@ -608,8 +546,8 @@ class ApkPureService {
       final match3 = regex3.firstMatch(html);
       if (match3 != null) {
         var url = match3.group(0);
-        if (url != null && 
-            !url.contains('login') && 
+        if (url != null &&
+            !url.contains('login') &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(url)) {
           return url;
@@ -624,8 +562,8 @@ class ApkPureService {
       final match4 = regex4.firstMatch(html);
       if (match4 != null) {
         final url = match4.group(1);
-        if (url != null && 
-            !url.contains('login') && 
+        if (url != null &&
+            !url.contains('login') &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(url)) {
           return url;
@@ -640,9 +578,9 @@ class ApkPureService {
       final match5 = regex5.firstMatch(html);
       if (match5 != null) {
         final url = match5.group(1);
-        if (url != null && 
-            !url.contains('login') && 
-            !url.contains('javascript') && 
+        if (url != null &&
+            !url.contains('login') &&
+            !url.contains('javascript') &&
             !url.contains('m.apkpure') &&
             _isValidDownloadUrl(url)) {
           return url;
@@ -657,8 +595,8 @@ class ApkPureService {
       final match6 = regex6.firstMatch(html);
       if (match6 != null) {
         final url = match6.group(1);
-        if (url != null && 
-            !url.contains('login') && 
+        if (url != null &&
+            !url.contains('login') &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(_normalizeUrl(url))) {
           return _normalizeUrl(url);
@@ -673,8 +611,8 @@ class ApkPureService {
       final match7 = regex7.firstMatch(html);
       if (match7 != null) {
         final url = match7.group(1);
-        if (url != null && 
-            !url.contains('login') && 
+        if (url != null &&
+            !url.contains('login') &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(_normalizeUrl(url))) {
           return _normalizeUrl(url);
@@ -689,8 +627,8 @@ class ApkPureService {
       final match8 = regex8.firstMatch(html);
       if (match8 != null) {
         final url = match8.group(1);
-        if (url != null && 
-            !url.contains('javascript') && 
+        if (url != null &&
+            !url.contains('javascript') &&
             !url.contains('m.apkpure') &&
             _isValidDownloadUrl(_normalizeUrl(url))) {
           return _normalizeUrl(url);
@@ -705,7 +643,7 @@ class ApkPureService {
       final match9 = regex9.firstMatch(html);
       if (match9 != null) {
         final url = match9.group(1);
-        if (url != null && 
+        if (url != null &&
             !url.contains('javascript') &&
             _isValidDownloadUrl(_normalizeUrl(url))) {
           return _normalizeUrl(url);
@@ -728,7 +666,7 @@ class ApkPureService {
   }
 
   /// Validates if a URL is a valid APK download URL
-  /// 
+  ///
   /// Checks:
   /// - URL has minimum length (not just domain)
   /// - URL contains meaningful path (not just https://a.apkpure.com)
@@ -742,7 +680,8 @@ class ApkPureService {
 
     // Must contain /b/ path or .apk extension
     if (!url.contains('/b/') && !url.contains('.apk')) {
-      debugPrint('Invalid download URL - missing /b/ path or .apk extension: $url');
+      debugPrint(
+          'Invalid download URL - missing /b/ path or .apk extension: $url');
       return false;
     }
 
@@ -750,7 +689,8 @@ class ApkPureService {
     if (url.contains('/b/')) {
       final afterB = url.split('/b/').last;
       if (afterB.isEmpty || afterB.length < 5) {
-        debugPrint('Invalid download URL - missing package identifier after /b/: $url');
+        debugPrint(
+            'Invalid download URL - missing package identifier after /b/: $url');
         return false;
       }
     }
@@ -759,7 +699,7 @@ class ApkPureService {
   }
 
   /// Extracts ratings information from APK Pure HTML
-  /// 
+  ///
   /// Extracts:
   /// - rating: App rating score (e.g., "4.5")
   /// - ratingCount: Number of ratings (e.g., "1200")
@@ -784,7 +724,9 @@ class ApkPureService {
       );
       var ratingMatch = ratingRegex1.firstMatch(html);
       if (ratingMatch != null) {
-        var rating = ratingMatch.group(2) ?? ratingMatch.group(1) ?? ratingMatch.group(3);
+        var rating = ratingMatch.group(2) ??
+            ratingMatch.group(1) ??
+            ratingMatch.group(3);
         if (rating != null && rating.isNotEmpty) {
           result['rating'] = rating;
         }
@@ -861,7 +803,8 @@ class ApkPureService {
       );
       var ratingCountMatch = ratingCountRegex1.firstMatch(html);
       if (ratingCountMatch != null) {
-        final count = ratingCountMatch.group(1)?.replaceAll(RegExp(r'[^\d]'), '');
+        final count =
+            ratingCountMatch.group(1)?.replaceAll(RegExp(r'[^\d]'), '');
         // Only accept if it has at least 2 digits (filter out single digit noise)
         if (count != null && count.isNotEmpty && count.length >= 2) {
           result['ratingCount'] = count;
@@ -913,7 +856,9 @@ class ApkPureService {
       var downloadCountMatch = downloadCountRegex1.firstMatch(html);
       if (downloadCountMatch != null) {
         var count = downloadCountMatch.group(1)?.trim();
-        if (count != null && count.length > 1 && !RegExp(r'^[.,;:]$').hasMatch(count)) {
+        if (count != null &&
+            count.length > 1 &&
+            !RegExp(r'^[.,;:]$').hasMatch(count)) {
           result['downloadCount'] = count;
         }
       }
@@ -927,7 +872,9 @@ class ApkPureService {
         downloadCountMatch = downloadTextRegex.firstMatch(html);
         if (downloadCountMatch != null) {
           var count = downloadCountMatch.group(1)?.trim();
-          if (count != null && count.length > 1 && !RegExp(r'^[.,;:]$').hasMatch(count)) {
+          if (count != null &&
+              count.length > 1 &&
+              !RegExp(r'^[.,;:]$').hasMatch(count)) {
             result['downloadCount'] = count;
           }
         }
@@ -1061,7 +1008,8 @@ class ApkPureService {
       if (match1 != null) {
         final dateStr = match1.group(1)?.trim();
         if (dateStr != null && dateStr.isNotEmpty) {
-          return DateUtil.parseMultiLanguageDate(dateStr, countryCode ?? 'en_US');
+          return DateUtil.parseMultiLanguageDate(
+              dateStr, countryCode ?? 'en_US');
         }
       }
 
@@ -1100,7 +1048,8 @@ class ApkPureService {
       if (match4 != null) {
         final dateStr = match4.group(1)?.trim();
         if (dateStr != null && dateStr.isNotEmpty) {
-          return DateUtil.parseMultiLanguageDate(dateStr, countryCode ?? 'en_US');
+          return DateUtil.parseMultiLanguageDate(
+              dateStr, countryCode ?? 'en_US');
         }
       }
 
@@ -1113,7 +1062,8 @@ class ApkPureService {
       if (match5 != null) {
         final dateStr = match5.group(0);
         if (dateStr != null && dateStr.isNotEmpty) {
-          return DateUtil.parseMultiLanguageDate(dateStr, countryCode ?? 'en_US');
+          return DateUtil.parseMultiLanguageDate(
+              dateStr, countryCode ?? 'en_US');
         }
       }
 
@@ -1127,7 +1077,8 @@ class ApkPureService {
       if (match6 != null) {
         final dateStr = match6.group(1)?.trim();
         if (dateStr != null && dateStr.isNotEmpty && !dateStr.contains('<')) {
-          return DateUtil.parseMultiLanguageDate(dateStr, countryCode ?? 'en_US');
+          return DateUtil.parseMultiLanguageDate(
+              dateStr, countryCode ?? 'en_US');
         }
       }
 

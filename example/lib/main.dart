@@ -45,8 +45,9 @@ class _HomePageState extends State<HomePage> {
       androidHtmlReleaseNotes: true,
       androidPlayStoreCountry: 'en_US',
       iOSAppStoreCountry: 'en_US',
+      huaweiHtmlReleaseNotes: true,
       iOSId: 'flutterapp.spinevishal.com.comman_project',
-      huaweiId: 'com.github.TwrpBuilderF',
+      huaweiId: 'com.solu.mobsen',
     );
 
     // Detect device type
@@ -78,12 +79,12 @@ class _HomePageState extends State<HomePage> {
     // Step 1: Create checker with your app configuration
     final checker = AppVersionChecker(
 // Override only if different!
-      androidId: 'flutterapp.spinevishal.com.comman_project',
+      androidId: 'com.solu.mobsen',
       androidHtmlReleaseNotes: true,
       androidPlayStoreCountry: 'en_US',
       iOSAppStoreCountry: 'en_US',
-      iOSId: 'flutterapp.spinevishal.com.comman_project',
-      huaweiId: 'com.github.TwrpBuilderF',
+      iOSId: 'com.solu.mobsen',
+      huaweiId: 'com.solu.mobsen',
     );
 
     // Step 2: Check for update
