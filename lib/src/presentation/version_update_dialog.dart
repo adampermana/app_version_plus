@@ -7,7 +7,7 @@ import '../core/app_version_checker.dart';
 import '../models/version_info.dart';
 import '../models/update_availability.dart';
 import '../enums/device_type.dart';
-import '../presentation/enum/age_rating.dart';
+import '../enums/age_rating.dart';
 
 /// A ready-to-use Material Design dialog for displaying app update information
 ///

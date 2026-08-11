@@ -1,1 +1,0 @@
-enum LaunchModeVersion { normal, external }
