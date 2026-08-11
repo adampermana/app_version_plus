@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Update Flutter SDK constraint to >=3.35.0 (Dart 3.9+) to match newer transitive dependencies.
+
 ## 0.1.1
 
 * Update Flutter SDK requirement to >=3.24.0 (Dart 3.5+).
