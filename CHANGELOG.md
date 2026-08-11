@@ -1,3 +1,7 @@
+## 0.1.3
+
+* Fix missing test entry point in placeholder test file.
+
 ## 0.1.2
 
 * Update Flutter SDK constraint to >=3.35.0 (Dart 3.9+) to match newer transitive dependencies.
