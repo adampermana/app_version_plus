@@ -19,6 +19,12 @@ A comprehensive Flutter plugin for checking app version updates across **Android
 - ✅ **Type-Safe** — Full Dart null-safety support
 - ✅ **Auto Fallback** — Falls back to Play Store URL if In-App Update is unavailable
 
+## 📸 Screenshots
+
+| Showcase 1 | Showcase 2 |
+|---|---|
+| ![Demo 1](docs/image1.png) | ![Demo 2](docs/image2.png) |
+
 ## Supported Platforms
 
 | Platform | Version Check | In-App Update |
@@ -294,6 +300,15 @@ A: Yes — use `AndroidUpdateType.immediate` on Android (Play Core blocks the UI
 
 **Q: Does this work offline?**
 A: No — an internet connection is required to check the store and to fetch update info.
+
+## 🔧 Troubleshooting
+
+### Getting `ERROR_API_NOT_AVAILABLE` error
+
+Be aware that this plugin cannot be tested locally. It must be installed via Google Play to work. Please check the official documentation about In-App Updates from Google:
+
+- [Android In-App Updates Overview](https://developer.android.com/guide/app-bundle/in-app-updates)
+- [How to Test In-App Updates](https://developer.android.com/guide/playcore/in-app-updates/test)
 
 ## 🤝 Contributing
 
