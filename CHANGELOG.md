@@ -1,3 +1,9 @@
+## 0.1.1
+
+* Update Flutter SDK requirement to >=3.24.0 (Dart 3.5+).
+* Update dependencies.
+* Add apkpure topic.
+
 ## 0.1.0
 
 * Initial release.
