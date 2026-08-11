@@ -23,7 +23,7 @@ A comprehensive Flutter plugin for checking app version updates across **Android
 
 | Showcase 1 | Showcase 2 |
 |---|---|
-| ![Demo 1](docs/image1.png) | ![Demo 2](docs/image2.png) |
+| ![Demo 1](doc/image1.png) | ![Demo 2](doc/image2.png) |
 
 ## Supported Platforms
 
