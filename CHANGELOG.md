@@ -1,3 +1,8 @@
+## 0.1.4
+
+* Rename docs folder to doc to comply with Pub package layout convention.
+* Fix README.md image paths.
+
 ## 0.1.3
 
 * Fix missing test entry point in placeholder test file.
