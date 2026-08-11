@@ -1,4 +1,5 @@
 import 'update_availability.dart';
+import '../enums/android_update_type.dart';
 import '../enums/device_type.dart';
 
 /// Information about the app's current version and the most recent version
@@ -52,6 +53,10 @@ class VersionInfo {
   /// Direct APK download URL (for Huawei/APK Pure downloads)
   final String? apkDownloadUrl;
 
+  /// Update type to use for Android In-App Updates (immediate or flexible).
+  /// Set via [AppVersionChecker.androidUpdateType].
+  final AndroidUpdateType androidUpdateType;
+
   VersionInfo._({
     required this.localVersion,
     required this.storeVersion,
@@ -69,6 +74,7 @@ class VersionInfo {
     this.contentRating,
     this.deviceType,
     this.apkDownloadUrl,
+    this.androidUpdateType = AndroidUpdateType.immediate,
   });
 
   /// Creates a [VersionInfo] instance from store data
@@ -89,6 +95,7 @@ class VersionInfo {
     String? contentRating,
     DeviceType? deviceType,
     String? apkDownloadUrl,
+    AndroidUpdateType androidUpdateType = AndroidUpdateType.immediate,
   }) {
     return VersionInfo._(
       localVersion: localVersion,
@@ -107,6 +114,7 @@ class VersionInfo {
       contentRating: contentRating,
       deviceType: deviceType,
       apkDownloadUrl: apkDownloadUrl,
+      androidUpdateType: androidUpdateType,
     );
   }
 
@@ -171,6 +179,7 @@ class VersionInfo {
     String? contentRating,
     DeviceType? deviceType,
     String? apkDownloadUrl,
+    AndroidUpdateType? androidUpdateType,
   }) {
     return VersionInfo._(
       localVersion: localVersion ?? this.localVersion,
@@ -189,6 +198,7 @@ class VersionInfo {
       contentRating: contentRating ?? this.contentRating,
       deviceType: deviceType ?? this.deviceType,
       apkDownloadUrl: apkDownloadUrl ?? this.apkDownloadUrl,
+      androidUpdateType: androidUpdateType ?? this.androidUpdateType,
     );
   }
 

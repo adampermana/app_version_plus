@@ -39,6 +39,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _detectDevice() async {
+    // Auto check for update on app start
     final checker = AppVersionChecker(
       // Override only if different from pubspec.yaml
       androidId: 'flutterapp.spinevishal.com.comman_project',
@@ -48,6 +49,8 @@ class _HomePageState extends State<HomePage> {
       huaweiHtmlReleaseNotes: true,
       iOSId: 'flutterapp.spinevishal.com.comman_project',
       huaweiId: 'com.solu.mobsen',
+      // Choose update flow: immediate (default) or flexible
+      androidUpdateType: AndroidUpdateType.immediate,
     );
 
     // Detect device type
@@ -85,6 +88,9 @@ class _HomePageState extends State<HomePage> {
       iOSAppStoreCountry: 'en_US',
       iOSId: 'com.solu.mobsen',
       huaweiId: 'com.solu.mobsen',
+      // AndroidUpdateType.immediate (default): fullscreen blocking update
+      // AndroidUpdateType.flexible: background download, user stays in app
+      androidUpdateType: AndroidUpdateType.flexible,
     );
 
     // Step 2: Check for update

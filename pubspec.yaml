@@ -27,6 +27,11 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.adampermana.app_version_plus
+        pluginClass: AppVersionPlusPlugin
   assets:
     - assets/age_android/
     - assets/age_ios/

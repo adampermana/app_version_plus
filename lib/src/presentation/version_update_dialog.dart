@@ -1,13 +1,16 @@
 import 'package:app_version_plus/src/presentation/submit_button_styless_widget.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import '../core/app_version_checker.dart';
-import '../models/version_info.dart';
-import '../models/update_availability.dart';
+import '../enums/android_update_type.dart';
 import '../enums/device_type.dart';
 import '../enums/age_rating.dart';
+import '../models/version_info.dart';
+import '../models/update_availability.dart';
+import '../platform/in_app_update_service.dart';
 
 /// A ready-to-use Material Design dialog for displaying app update information
 ///
@@ -126,11 +129,32 @@ class VersionUpdateDialog extends StatefulWidget {
 class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
   bool _isExpanded = false;
   bool _localeInitialized = false;
+  bool _isUpdating = false;
+
+  late final InAppUpdateService _inAppUpdateService;
 
   @override
   void initState() {
     super.initState();
     _initializeLocale();
+    _inAppUpdateService = InAppUpdateService(
+      onFlexibleUpdateDownloaded: _onFlexibleUpdateDownloaded,
+    );
+  }
+
+  void _onFlexibleUpdateDownloaded() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Update downloaded. Restart to apply.'),
+        action: SnackBarAction(
+          label: 'Restart',
+          onPressed: () => _inAppUpdateService.completeFlexibleUpdate(),
+        ),
+        duration: const Duration(seconds: 10),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _initializeLocale() async {
@@ -606,75 +630,8 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
               style: widget.updateButtonStyle ?? SubmitButtonStyle.elevated,
               gradient: widget.updateButtonGradient,
               useGradient: widget.updateButtonGradient != null,
-              textButton: label,
-              onPressed: () async {
-                final checker = AppVersionChecker();
-
-                // For Huawei devices, use direct APK download
-                if (widget.versionInfo.deviceType == DeviceType.huawei) {
-                  try {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Opening download...'),
-                        duration: Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-
-                    final success = await checker.downloadApk(
-                      versionInfo: widget.versionInfo,
-                    );
-
-                    if (mounted) {
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Download started!'),
-                            duration: Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        Navigator.of(context).pop();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                                'Failed to open download. Please try again.'),
-                            action: SnackBarAction(
-                              label: 'Retry',
-                              onPressed: () async {
-                                final retrySuccess = await checker.downloadApk(
-                                  versionInfo: widget.versionInfo,
-                                );
-                                if (retrySuccess && mounted) {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    debugPrint('Error in download: $e');
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $e'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  }
-                } else {
-                  // For other platforms, launch the store
-                  await checker.launchStore(versionInfo: widget.versionInfo);
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                  }
-                }
-              },
+              textButton: _isUpdating ? 'Updating...' : label,
+              onPressed: _isUpdating ? null : _handleUpdate,
             ),
           ),
         ],
@@ -687,76 +644,147 @@ class _VersionUpdateDialogState extends State<VersionUpdateDialog> {
       style: widget.updateButtonStyle ?? SubmitButtonStyle.elevated,
       gradient: widget.updateButtonGradient,
       useGradient: widget.updateButtonGradient != null,
-      textButton: label,
-      onPressed: () async {
-        final checker = AppVersionChecker();
-
-        // For Huawei devices, use direct APK download
-        if (widget.versionInfo.deviceType == DeviceType.huawei) {
-          try {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Opening download...'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-
-            final success = await checker.downloadApk(
-              versionInfo: widget.versionInfo,
-            );
-
-            if (mounted) {
-              if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Download started!'),
-                    duration: Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-                Navigator.of(context).pop();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text(
-                        'Failed to open download. Please try again.'),
-                    action: SnackBarAction(
-                      label: 'Retry',
-                      onPressed: () async {
-                        final retrySuccess = await checker.downloadApk(
-                          versionInfo: widget.versionInfo,
-                        );
-                        if (retrySuccess && mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            }
-          } catch (e) {
-            debugPrint('Error in download: $e');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error: $e'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-          }
-        } else {
-          // For other platforms, launch the store
-          await checker.launchStore(versionInfo: widget.versionInfo);
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        }
-      },
+      textButton: _isUpdating ? 'Updating...' : label,
+      onPressed: _isUpdating ? null : _handleUpdate,
     );
+  }
+
+  /// Central handler for the Update button tap.
+  ///
+  /// Priority:
+  /// 1. Huawei → direct APK download (unchanged)
+  /// 2. Android → In-App Update via Play Core; fallback to Play Store URL
+  /// 3. iOS and others → open App Store URL
+  Future<void> _handleUpdate() async {
+    final info = widget.versionInfo;
+
+    if (info.deviceType == DeviceType.huawei) {
+      await _handleHuaweiDownload();
+      return;
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await _handleAndroidInAppUpdate();
+      return;
+    }
+
+    // iOS / unknown — open store URL
+    await _launchStore();
+  }
+
+  Future<void> _handleAndroidInAppUpdate() async {
+    setState(() => _isUpdating = true);
+
+    try {
+      final updateType = widget.versionInfo.androidUpdateType;
+      String? result;
+
+      if (updateType == AndroidUpdateType.flexible) {
+        result = await _inAppUpdateService.startFlexibleUpdate();
+      } else {
+        result = await _inAppUpdateService.startImmediateUpdate();
+      }
+
+      if (!mounted) return;
+
+      // Treat null / not-available results as fallback to store URL
+      if (result == null ||
+          result == 'UPDATE_NOT_AVAILABLE' ||
+          result == 'UPDATE_TYPE_NOT_ALLOWED') {
+        debugPrint(
+          '[VersionUpdateDialog] In-App Update unavailable ($result), '
+          'falling back to Play Store URL.',
+        );
+        await _launchStore();
+        return;
+      }
+
+      // IMMEDIATE accepted → Play Store handles the full UI; close dialog
+      // FLEXIBLE started → download runs in background; user stays in app
+      if (result == 'UPDATE_ACCEPTED' && mounted) {
+        Navigator.of(context).pop();
+      }
+      // FLEXIBLE: dialog stays open; _onFlexibleUpdateDownloaded fires later
+    } catch (e) {
+      debugPrint('[VersionUpdateDialog] In-App Update error: $e, falling back');
+      if (mounted) {
+        await _launchStore();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
+  }
+
+  Future<void> _handleHuaweiDownload() async {
+    setState(() => _isUpdating = true);
+
+    try {
+      final checker = AppVersionChecker();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Opening download...'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      final success = await checker.downloadApk(
+        versionInfo: widget.versionInfo,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Download started!'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to open download. Please try again.'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _handleHuaweiDownload,
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[VersionUpdateDialog] Huawei download error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
+  }
+
+  Future<void> _launchStore() async {
+    try {
+      final checker = AppVersionChecker();
+      await checker.launchStore(versionInfo: widget.versionInfo);
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      debugPrint('[VersionUpdateDialog] launchStore error: $e');
+    }
   }
 
   String _getDefaultTitle() {

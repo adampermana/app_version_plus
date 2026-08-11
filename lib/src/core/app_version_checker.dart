@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../enums/android_update_type.dart';
 import '../enums/device_type.dart';
 import '../models/version_info.dart';
 import '../services/android_store_service.dart';
@@ -57,6 +58,15 @@ class AppVersionChecker {
   /// Manually override device type detection (useful for testing)
   final DeviceType? overrideDeviceType;
 
+  /// Update type used for Android In-App Updates via Google Play Core.
+  ///
+  /// - [AndroidUpdateType.immediate] (default) — fullscreen blocking update.
+  /// - [AndroidUpdateType.flexible] — background download; user stays in app.
+  ///
+  /// This value is passed to [VersionInfo] and read by [VersionUpdateDialog]
+  /// when the Update button is tapped on Android.
+  final AndroidUpdateType androidUpdateType;
+
   /// Cached version info to avoid repeated network calls
   VersionInfo? _cachedVersionInfo;
 
@@ -75,6 +85,7 @@ class AppVersionChecker {
     this.androidHtmlReleaseNotes = false,
     this.huaweiHtmlReleaseNotes = false,
     this.overrideDeviceType,
+    this.androidUpdateType = AndroidUpdateType.immediate,
   });
 
   /// Checks for app updates and returns version information
@@ -131,6 +142,12 @@ class AppVersionChecker {
         case DeviceType.unknown:
           debugPrint('Cannot check for updates: unknown device type');
           return null;
+      }
+
+      // Attach androidUpdateType so VersionUpdateDialog can use the correct
+      // Play Core flow without the caller needing to pass it separately.
+      if (versionInfo != null && deviceType == DeviceType.android) {
+        versionInfo = versionInfo.copyWith(androidUpdateType: androidUpdateType);
       }
 
       // Cache the result
