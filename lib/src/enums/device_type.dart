@@ -6,9 +6,13 @@ enum DeviceType {
   /// iOS/iPadOS device
   ios,
 
+  /// macOS device
+  macos,
+
   /// Huawei device (using Huawei AppGallery)
   huawei,
 
   /// Unknown or unsupported platform
   unknown,
 }
+

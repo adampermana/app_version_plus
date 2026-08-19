@@ -121,6 +121,7 @@ class AppVersionChecker {
           break;
 
         case DeviceType.ios:
+        case DeviceType.macos:
           debugPrint('Checking for updates on Apple App Store');
           versionInfo = await IosStoreService(
             iOSId: iOSId,

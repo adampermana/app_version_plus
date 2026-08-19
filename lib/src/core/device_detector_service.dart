@@ -12,6 +12,7 @@ class DeviceDetectorService {
   /// Returns [DeviceType.huawei] if the device is a Huawei device,
   /// [DeviceType.android] for other Android devices,
   /// [DeviceType.ios] for iOS/iPadOS devices,
+  /// [DeviceType.macos] for macOS devices,
   /// and [DeviceType.unknown] for unsupported platforms.
   Future<DeviceType> detectDeviceType() async {
     try {
@@ -19,9 +20,11 @@ class DeviceDetectorService {
         return await _detectAndroidDeviceType();
       } else if (Platform.isIOS) {
         return DeviceType.ios;
+      } else if (Platform.isMacOS) {
+        return DeviceType.macos;
       } else {
         debugPrint(
-            'Unsupported platform: ${Platform.operatingSystem}. Only Android and iOS are supported.');
+            'Unsupported platform: ${Platform.operatingSystem}. Only Android, iOS, and macOS are supported.');
         return DeviceType.unknown;
       }
     } catch (e) {

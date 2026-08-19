@@ -32,6 +32,10 @@ flutter:
       android:
         package: com.adampermana.app_version_plus
         pluginClass: AppVersionPlusPlugin
+      ios:
+        pluginClass: AppVersionPlusPlugin
+      macos:
+        pluginClass: AppVersionPlusPlugin
   assets:
     - assets/age_android/
     - assets/age_ios/
