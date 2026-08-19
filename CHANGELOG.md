@@ -1,3 +1,8 @@
+## 0.1.2
+
+* Updated `device_info_plus` dependency to `^13.2.0`.
+* Updated `package_info_plus` dependency to `^10.2.1`.
+
 ## 0.1.1
 
 * Added iOS platform initialization (Podspec, Swift plugin, and PrivacyInfo manifest).

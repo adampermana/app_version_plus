@@ -1,6 +1,6 @@
 name: app_version_plus
 description: A Flutter package for checking app version updates across Android, iOS, and Huawei app stores, with ready-to-use UI widgets and customizable functions.
-version: 0.1.1
+version: 0.1.2
 homepage: https://github.com/adampermana/app_version_plus
 repository: https://github.com/adampermana/app_version_plus
 issue_tracker: https://github.com/adampermana/app_version_plus/issues
@@ -12,13 +12,13 @@ environment:
   flutter: ">=3.35.0"
 
 dependencies:
-  device_info_plus: ^12.3.0
+  device_info_plus: ^13.2.0
   flutter:
     sdk: flutter
   flutter_svg: ^2.0.16
   http: ^1.6.0
   intl: ^0.20.2
-  package_info_plus: ^9.0.0
+  package_info_plus: ^10.2.1
   url_launcher: ^6.3.1
 
 dev_dependencies:
