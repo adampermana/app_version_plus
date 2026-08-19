@@ -1,3 +1,10 @@
+## 0.1.1
+
+* Added iOS platform initialization (Podspec, Swift plugin, and PrivacyInfo manifest).
+* Added macOS platform initialization (Podspec, Swift plugin, and PrivacyInfo manifest).
+* Added `DeviceType.macos` enum and macOS detection in `DeviceDetectorService`.
+* Enabled App Store version checking support for macOS in `AppVersionChecker`.
+
 ## 0.1.0
 
 * Initial release.

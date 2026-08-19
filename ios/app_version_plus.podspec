@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'app_version_plus'
-  s.version          = '0.1.0'
+  s.version          = '0.1.1'
   s.summary          = 'A Flutter package for checking app version updates across app stores.'
   s.description      = <<-DESC
 A Flutter package for checking app version updates across Android, iOS, and Huawei app stores.
