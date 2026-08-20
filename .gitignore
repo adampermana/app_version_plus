@@ -29,6 +29,8 @@ migrate_working_dir/
 .flutter-plugins
 .flutter-plugins-dependencies
 build/
+.build/
+.swiftpm/
 
 # Agents
 .claude/rules/rules-flutter.md

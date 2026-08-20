@@ -1,3 +1,11 @@
+## 0.1.3
+
+* Added Swift Package Manager (SPM) support for iOS (>= 13.0) and macOS (>= 10.15).
+* Migrated Android build configuration to support built-in Kotlin (AGP 9+ / KGP 2.0+ compatibility).
+* Updated minimum platform targets to iOS 13.0 and macOS 10.15.
+* Updated dependencies to latest compatible versions (`device_info_plus` ^13.2.0, `package_info_plus` ^10.2.1, `flutter_svg` ^2.3.0, `intl` ^0.20.3, `url_launcher` ^6.3.2).
+* Cleaned up and reorganized iOS/macOS plugin native directory structure.
+
 ## 0.1.2
 
 * Updated `device_info_plus` dependency to `^13.2.0`.

@@ -13,13 +13,13 @@ A Flutter package for checking app version updates across Android, iOS, and Huaw
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Adam Permana' => 'adampermana@gmail.com' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'app_version_plus/Sources/app_version_plus/**/*.swift'
   s.dependency 'FlutterMacOS'
-  s.platform         = :osx, '10.14'
+  s.platform         = :osx, '10.15'
 
   # FlutterMacOS.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version    = '5.0'
 
-  s.resource_bundles = {'app_version_plus_privacy' => ['Resources/PrivacyInfo.xcprivacy']}
+  s.resource_bundles = {'app_version_plus_privacy' => ['app_version_plus/Sources/app_version_plus/PrivacyInfo.xcprivacy']}
 end
