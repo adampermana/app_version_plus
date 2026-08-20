@@ -8,8 +8,8 @@ topics: [version, app-update, apple, huawei, apkpure]
 license: MIT
 
 environment:
-  sdk: ^3.9.0
-  flutter: ">=3.35.0"
+  sdk: ^3.10.0
+  flutter: ">=3.38.0"
 
 dependencies:
   device_info_plus: ^13.2.0

@@ -3,10 +3,12 @@ name: Flutter Test
 on:
   push:
     branches: 
+        - main
         - master
         - dev
   pull_request:
     branches: 
+        - main
         - master
         - dev
 
@@ -22,7 +24,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-          flutter-version: "3.35.x"
+          flutter-version: "3.44.x"
       - name: Install dependencies 📦
         run: flutter pub get
 
